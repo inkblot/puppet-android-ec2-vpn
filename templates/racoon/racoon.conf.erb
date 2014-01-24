@@ -24,8 +24,8 @@ remote anonymous {
 	exchange_mode main;
 
 #	passive on;
-#	generate_policy on;
-	my_identifier address <%= @ec2_public_ipv4 %>;
+	generate_policy on;
+	my_identifier address <%= @public_ipv4 %>;
 	nat_traversal on;
 #	proposal_check obey;
 

@@ -4,6 +4,8 @@ class android_ec2_vpn (
     $username,
     $password,
     $pre_shared_key,
+    $public_ipv4    = $::ec2_public_ipv4,
+    $local_ipv4     = $::ec2_local_ipv4,
     $debug = false,
 ) {
     File {
@@ -51,6 +53,11 @@ class android_ec2_vpn (
         require => Package['racoon'],
     }
 
+    file { '/etc/ipsec-tools.conf':
+        content => template('android_ec2_vpn/ipsec-tools/ipsec-tools.conf.erb'),
+        require => Package['ipsec-tools'],
+    }
+
     file { '/etc/ipsec-tools.d/l2tp.conf':
         content => template('android_ec2_vpn/ipsec-tools/l2tp.conf.erb'),
         require => Package['ipsec-tools'],
@@ -72,11 +79,11 @@ class android_ec2_vpn (
         subscribe  => File['/etc/racoon/racoon.conf', '/etc/racoon/psk.txt'],
     }
 
-    exec { 'setkey start':
-        command     => '/etc/init.d/setkey start',
+    exec { 'setkey restart':
+        command     => '/usr/sbin/service setkey restart',
         user        => 'root',
         refreshonly => true,
-        subscribe   => File['/etc/ipsec-tools.d/l2tp.conf'],
+        subscribe   => File['/etc/ipsec-tools.conf', '/etc/ipsec-tools.d/l2tp.conf'],
     }
 
     class { 'shorewall':
@@ -153,6 +160,6 @@ class android_ec2_vpn (
         order       => '10',
     }
     shorewall::masq { 'eth0':
-        sources => [ 'ppp0' ],
+        sources => [ '192.168.200.0/24' ],
     }
 }
