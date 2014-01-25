@@ -8,82 +8,38 @@ class android_ec2_vpn (
     $local_ipv4     = $::ec2_local_ipv4,
     $debug = false,
 ) {
-    File {
-        ensure => present,
-        owner => 'root',
-        group => 'root',
-        mode  => '0644',
+
+    class { 'racoon':
+        public_ipv4    => $public_ipv4,
+        pre_shared_key => $pre_shared_key,
+        encapsulate    => {
+            'l2tp-local' => {
+                local_ip => $local_ipv4,
+                port     => 'l2tp',
+                proto    => 'udp',
+            },
+            'l2tp-public' => {
+                local_ip => $public_ipv4,
+                port     => 'l2tp',
+                proto    => 'udp',
+            },
+        },
     }
 
-    package { 'xl2tpd':
-        ensure => latest,
+    class { 'xl2tpd':
+        min_dynamic_ip => '192.168.200.100',
+        max_dynamic_ip => '192.168.200.110',
+        tunnel_ip      => '192.168.200.10',
+        dns_servers    => [ '8.8.4.4', '8.8.8.8' ],
+        debug          => $debug,
     }
 
-    package { 'racoon':
-        ensure => latest,
-    }
-
-    package { 'ipsec-tools':
-        ensure => latest,
-    }
-
-    file { '/etc/xl2tpd/xl2tpd.conf':
-        content => template('android_ec2_vpn/xl2tpd/xl2tpd.conf.erb'),
-        require => Package['xl2tpd'],
-    }
-
-    file { '/etc/ppp/options.xl2tpd':
-        content => template('android_ec2_vpn/ppp/options.xl2tpd.erb'),
-        require => Package['xl2tpd'],
-    }
-
-    file { '/etc/ppp/chap-secrets':
-        content => template('android_ec2_vpn/ppp/chap-secrets.erb'),
-        require => Package['xl2tpd'],
-    }
-
-    file { '/etc/racoon/racoon.conf':
-        content => template('android_ec2_vpn/racoon/racoon.conf.erb'),
-        require => Package['racoon'],
-    }
-
-    file { '/etc/racoon/psk.txt':
-        content => template('android_ec2_vpn/racoon/psk.txt.erb'),
-        mode    => '0600',
-        require => Package['racoon'],
-    }
-
-    file { '/etc/ipsec-tools.conf':
-        content => template('android_ec2_vpn/ipsec-tools/ipsec-tools.conf.erb'),
-        require => Package['ipsec-tools'],
-    }
-
-    file { '/etc/ipsec-tools.d/l2tp.conf':
-        content => template('android_ec2_vpn/ipsec-tools/l2tp.conf.erb'),
-        require => Package['ipsec-tools'],
-    }
-
-    service { 'xl2tpd':
-        ensure     => running,
-        pattern    => '/usr/sbin/xl2tpd',
-        hasstatus  => false,
-        hasrestart => true,
-        subscribe  => File['/etc/xl2tpd/xl2tpd.conf', '/etc/ppp/options.xl2tpd'],
-    }
-
-    service { 'racoon':
-        ensure     => running,
-        pattern    => '/usr/sbin/racoon',
-        hasstatus  => false,
-        hasrestart => true,
-        subscribe  => File['/etc/racoon/racoon.conf', '/etc/racoon/psk.txt'],
-    }
-
-    exec { 'setkey restart':
-        command     => '/usr/sbin/service setkey restart',
-        user        => 'root',
-        refreshonly => true,
-        subscribe   => File['/etc/ipsec-tools.conf', '/etc/ipsec-tools.d/l2tp.conf'],
+    class { 'ppp':
+        chap_users => {
+            "${username}" => {
+                password => $password,
+            },
+        },
     }
 
     class { 'shorewall':

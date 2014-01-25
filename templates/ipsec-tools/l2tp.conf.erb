@@ -1,8 +1,0 @@
-spdadd <%= @local_ipv4 %>[l2tp] 0.0.0.0/0 udp -P out ipsec
-        esp/transport//require;
-spdadd 0.0.0.0/0 <%= @local_ipv4 %>[l2tp] udp -P in ipsec
-        esp/transport//require;
-spdadd <%= @public_ipv4 %>[l2tp] 0.0.0.0/0 udp -P out ipsec
-        esp/transport//require;
-spdadd 0.0.0.0/0 <%= @public_ipv4 %>[l2tp] udp -P in ipsec
-        esp/transport//require;
