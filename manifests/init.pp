@@ -6,14 +6,20 @@ class android_ec2_vpn (
     $pre_shared_key,
     $public_ipv4    = $::ec2_public_ipv4,
     $local_ipv4     = $::ec2_local_ipv4,
-    $debug = false,
+    $mtu            = '1300',
+    $mru            = '1300',
+    $debug          = false,
 ) {
 
     class { 'racoon':
-        public_ipv4    => $public_ipv4,
-        pre_shared_key => $pre_shared_key,
-        encapsulate    => {
-            'l2tp-local' => {
+        pre_shared_keys => {
+            'android-user' => {
+                'peer' => '*',
+                'key'  => $pre_shared_key,
+            },
+        },
+        encapsulate     => {
+            'l2tp-local'  => {
                 local_ip => $local_ipv4,
                 port     => 'l2tp',
                 proto    => 'udp',
@@ -24,6 +30,30 @@ class android_ec2_vpn (
                 proto    => 'udp',
             },
         },
+        remotes         => {
+            'android-user' => {
+                'address'         => 'anonymous',
+                'mode'            => 'main',
+                'generate_policy' => true,
+                'my_identifier'   => {
+                    'type'  => 'address',
+                    'value' => $public_ipv4,
+                },
+                'nat_traversal'   => 'on',
+                'proposal'        => {
+                    'encryption_algorithm'  => '3des',
+                    'hash_algorithm'        => 'sha1',
+                }
+            },
+        },
+        associations    => {
+            'android-user' => {
+                'type'                     => 'anonymous',
+                'encryption_algorithm'     => [ 'aes', '3des' ],
+                'authentication_algorithm' => [ 'hmac_sha1', 'hmac_md5' ],
+                'compression_algorithm'    => 'deflate',
+            },
+        },
     }
 
     class { 'xl2tpd':
@@ -31,6 +61,8 @@ class android_ec2_vpn (
         max_dynamic_ip => '192.168.200.110',
         tunnel_ip      => '192.168.200.10',
         dns_servers    => [ '8.8.4.4', '8.8.8.8' ],
+        mtu            => $mtu,
+        mru            => $mru,
         debug          => $debug,
     }
 
