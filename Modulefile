@@ -1,5 +1,5 @@
 name    'inkblot/android_ec2_vpn'
-version '2.1.0'
+version '2.1.1'
 source  'git://github.com/inkblot/puppet-android-ec2-vpn'
 author  'inkblot'
 license 'Apache 2.0'
@@ -9,5 +9,5 @@ project_page 'https://github.com/inkblot/puppet-android-ec2-vpn'
 
 dependency 'inkblot/racoon', '>= 1.1.0'
 dependency 'inkblot/xl2tpd', '>= 1.1.0'
-dependency 'inkblot/ppp', '>= 1.0.0'
+dependency 'inkblot/ppp', '>= 0.1.0'
 dependency 'inkblot/shorewall', '>= 3.0.0'
